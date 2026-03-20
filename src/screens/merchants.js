@@ -4,7 +4,7 @@
 
 import { merchants, categories } from '../data/merchants.js';
 
-export function renderMerchants(app, navigate) {
+export function renderMerchants(app, navigate, params = {}) {
   const screen = document.createElement('div');
   screen.className = 'screen';
   screen.id = 'merchants-screen';
@@ -73,7 +73,12 @@ export function renderMerchants(app, navigate) {
     tile.style.transform = 'scale(0.97)';
     setTimeout(() => {
       const merchantId = tile.dataset.merchantId;
-      navigate('transaction', { merchantId });
+      const m = merchants.find(merch => merch.id === merchantId);
+      if (m && m.subCategories) {
+        navigate('category_selection', { merchantId, isSimulation: params.isSimulation });
+      } else {
+        navigate('transaction', { merchantId, isSimulation: params.isSimulation });
+      }
     }, 150);
   });
 }

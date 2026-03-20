@@ -151,7 +151,7 @@ export function renderHome(app, navigate) {
 
   // Event listeners
   document.getElementById('qa-scan')?.addEventListener('click', () => navigate('merchants'));
-  document.getElementById('nav-smartpay')?.addEventListener('click', () => navigate('merchants'));
+  document.getElementById('nav-smartpay')?.addEventListener('click', () => navigate('merchants', { isSimulation: true }));
   document.getElementById('profile-btn')?.addEventListener('click', () => {
     // Custom Logout Modal
     const modalOverlay = document.createElement('div');

@@ -16,6 +16,7 @@ import { renderCancel } from './screens/cancel.js';
 import { renderCards } from './screens/cards.js';
 import { renderUpiPin } from './screens/upi_pin.js';
 import { renderMerchantSimulator } from './screens/merchant_simulator.js';
+import { renderCategorySelection } from './screens/category_selection.js';
 import { renderDashboard } from './screens/dashboard.js';
 import { merchants } from './data/merchants.js';
 
@@ -49,6 +50,7 @@ const screens = {
   upi_pin: renderUpiPin,
   merchant_simulator: renderMerchantSimulator,
   dashboard: renderDashboard,
+  category_selection: renderCategorySelection,
 };
 
 // Protected screens (require login)
@@ -174,7 +176,9 @@ async function initApp() {
   const inboundCategory = urlParams.get('category');
   const inboundAmount = urlParams.get('amount');
   const inboundOrderId = urlParams.get('orderId');
-  const autoOpen = urlParams.get('autoOpen') !== 'false';
+  if (window.history.state && window.history.state.params) {
+    screenParams = window.history.state.params;
+  }
 
   if (simulator === 'true') {
     currentScreen = 'merchant_simulator';
@@ -252,6 +256,19 @@ async function initApp() {
       }
     } catch (e) {
       console.error('Failed to parse pending transaction');
+    }
+  }
+
+  // Restore state from hash if possible
+  const hash = window.location.hash.replace('#', '');
+  if (hash) {
+    const parts = hash.split('/');
+    currentScreen = parts[0];
+    if (window.history.state && window.history.state.params) {
+      screenParams = window.history.state.params;
+    } else if (parts[1]) {
+      // Fallback: extract merchantId from hash if history state is missing
+      screenParams = { merchantId: parts[1] };
     }
   }
 

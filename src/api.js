@@ -125,7 +125,7 @@ export async function getCards() {
 }
 
 // Recommendation helper
-export async function getSmartRecommendation(merchantId, merchantName, category, amount, credCashback = 0) {
+export async function getSmartRecommendation(merchantId, merchantName, category, amount, credCashback = 0, mcc = null) {
   return api('/recommend', {
     method: 'POST',
     body: {
@@ -133,7 +133,8 @@ export async function getSmartRecommendation(merchantId, merchantName, category,
       merchant_name: merchantName,
       category,
       amount,
-      cred_cashback: credCashback
+      cred_cashback: credCashback,
+      mcc: mcc
     }
   });
 }

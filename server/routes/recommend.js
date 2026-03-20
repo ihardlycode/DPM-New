@@ -26,7 +26,7 @@ const POINT_VALUES = {
 // POST /api/recommend — Smart recommendation with cap tracking + offers
 router.post('/', authMiddleware, (req, res) => {
   const startTime = Date.now();
-  const { merchant_id, merchant_name, category, amount, cred_cashback } = req.body;
+  const { merchant_id, merchant_name, category, amount, cred_cashback, mcc } = req.body;
 
   if (!category || !amount) {
     return res.status(400).json({ error: 'category and amount required' });
@@ -88,7 +88,19 @@ router.post('/', authMiddleware, (req, res) => {
   const userResults = userCardDetails.map(uc => {
     const card = uc.cardData;
     const rewards = card.rewards;
-    const rewardRule = rewards[category] || rewards.default;
+    let rewardRule = rewards[category] || rewards.default;
+
+    // Special logic for Amazon MCCs — Some categories are excluded from 5% categories
+    if (merchant_id === 'amazon' && mcc) {
+      // 5815: Digital Goods, 5947: Gift Cards, 6540: Wallet Top-ups
+      const excludedMCCs = ['5815', '5947', '6540'];
+      if (excludedMCCs.includes(mcc)) {
+        if (card.name.includes('Millennia') || card.name.includes('Cashback SBI')) {
+           // For these cards, these MCCs often fallback to the base rate
+           rewardRule = rewards.default || { type: 'cashback', rate: 1, label: '1% Base Reward' };
+        }
+      }
+    }
 
     if (!rewardRule) {
       return { card: uc, savings: 0, label: 'No applicable reward', totalSavings: 0, reasoning: 'No reward rule', breakdown: [] };
@@ -213,7 +225,17 @@ router.post('/', authMiddleware, (req, res) => {
     })
     .map(c => {
       const rewards = JSON.parse(c.rewards);
-      const rule = rewards[category] || rewards.default;
+      let rule = rewards[category] || rewards.default;
+
+      // Special logic for Amazon MCCs for industry recommendations
+      if (merchant_id === 'amazon' && mcc) {
+        if (['5815', '5947', '6540'].includes(mcc)) {
+          if (c.name.includes('Millennia') || c.name.includes('Cashback SBI')) {
+             rule = rewards.default || { type: 'cashback', rate: 1, label: '1% Base Reward' };
+          }
+        }
+      }
+
       if (!rule) return null;
 
       const result = calculateBaseSavings(rule, txnAmount, c.bank);

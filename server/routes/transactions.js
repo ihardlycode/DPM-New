@@ -189,16 +189,29 @@ router.get('/stats', authMiddleware, (req, res) => {
     WHERE user_id = ? AND status = 'completed'
   `).get(req.userId);
 
+  // Better Opportunity Lost calculation: Only sum diff where we have tracked potential savings
+  const monthLost = db.prepare(`
+    SELECT COALESCE(SUM(MAX(0, potential_savings - savings)), 0) as lost
+    FROM transactions
+    WHERE user_id = ? AND created_at >= ? AND status = 'completed' AND (potential_savings > 0 OR card_id = 'upi')
+  `).get(req.userId, monthStart.toISOString()).lost;
+
+  const allTimeLost = db.prepare(`
+    SELECT COALESCE(SUM(MAX(0, potential_savings - savings)), 0) as lost
+    FROM transactions
+    WHERE user_id = ? AND status = 'completed' AND (potential_savings > 0 OR card_id = 'upi')
+  `).get(req.userId).lost;
+
   res.json({
     thisMonth: {
       ...monthStats,
-      opportunity_lost: Math.max(0, monthStats.total_potential - monthStats.total_savings)
+      opportunity_lost: monthLost
     },
     categoryBreakdown,
     cardSpending,
     allTime: {
       ...allTimeStats,
-      opportunity_lost: Math.max(0, allTimeStats.total_potential - allTimeStats.total_savings)
+      opportunity_lost: allTimeLost
     }
   });
 });

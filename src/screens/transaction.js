@@ -21,6 +21,11 @@ export function renderTransaction(app, navigate, params) {
   screen.id = 'transaction-screen';
 
   screen.innerHTML = `
+    ${params.isSimulation ? `
+      <div style="background: var(--orange-sunshine); color: #000; text-align: center; padding: 6px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">
+        Simulation Mode 🧠 — Discovery Only
+      </div>
+    ` : ''}
     <div class="screen-header">
       <button class="back-btn" id="txn-back">←</button>
       <span class="header-title">Enter Amount</span>
@@ -34,7 +39,7 @@ export function renderTransaction(app, navigate, params) {
       </div>
       <div>
         <div class="mh-name">${merchant.name}</div>
-        <div class="mh-category">${merchant.categoryLabel}</div>
+        <div class="mh-category">${params.subCategoryLabel || merchant.categoryLabel}</div>
       </div>
     </div>
 
@@ -161,7 +166,15 @@ export function renderTransaction(app, navigate, params) {
   updateMethod(paymentMethod);
 
   selSmartPay?.addEventListener('click', () => updateMethod('smartpay'));
-  selUpi?.addEventListener('click', () => updateMethod('upi'));
+  
+  if (params.isSimulation) {
+    selUpi.style.opacity = '0.5';
+    selUpi.style.pointerEvents = 'none';
+    const upiLabel = selUpi.querySelector('.nav-label');
+    if (upiLabel) upiLabel.textContent = 'UPI (Disabled)';
+  } else {
+    selUpi?.addEventListener('click', () => updateMethod('upi'));
+  }
 
   // Smart Pay button
   payBtn?.addEventListener('click', async () => {
@@ -170,7 +183,14 @@ export function renderTransaction(app, navigate, params) {
     
     let potentialSavings = 0;
     try {
-      const reco = await getSmartRecommendation(merchant.id, merchant.name, merchant.category, parseFloat(amount));
+      const reco = await getSmartRecommendation(
+        merchant.id, 
+        merchant.name, 
+        params.category || merchant.category, 
+        parseFloat(amount),
+        merchant.credCashback || 0,
+        params.mcc
+      );
       if (reco && reco.bestUserCard) {
         potentialSavings = reco.bestUserCard.totalSavings || 0;
       }
@@ -184,14 +204,24 @@ export function renderTransaction(app, navigate, params) {
         transactionId: params.transactionId,
         merchantId: merchant.id,
         amount: parseFloat(amount),
-        potentialSavings
+        potentialSavings,
+        isSimulation: params.isSimulation,
+        category: params.category || merchant.category,
+        subCategory: params.subCategory,
+        subCategoryLabel: params.subCategoryLabel,
+        mcc: params.mcc
       });
     } else {
       navigate('upi_pin', {
         transactionId: params.transactionId,
         merchantId: merchant.id,
         amount: parseFloat(amount),
-        potentialSavings
+        potentialSavings,
+        isSimulation: params.isSimulation,
+        category: params.category || merchant.category,
+        subCategory: params.subCategory,
+        subCategoryLabel: params.subCategoryLabel,
+        mcc: params.mcc
       });
     }
   });
